@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Content Ops Pipeline — one idea to every channel, with review</title>
+  <meta name="description" content="Turn one content idea into a brief, an X post and thread, a LinkedIn post, an Instagram carousel, a 30-second reel script and a posting schedule. Review on a Notion-style calendar. Includes an importable n8n workflow (Notion, LLM, Slack)." />
+  <meta property="og:title" content="Content Ops Pipeline" />
+  <meta property="og:description" content="One idea in. Brief, X, LinkedIn, Instagram, reel script and a posting schedule out, with a human review step. Notion + n8n + LLM." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#F7F7F5" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111111'/%3E%3Cpath d='M9 11h8M9 16h14M9 21h6' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <a class="sr-only" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#111"/><path d="M9 11h8M9 16h14M9 21h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div class="product">
+        <span class="product-name">Content Ops Pipeline</span>
+        <span class="product-line">One idea to five channel drafts, a schedule and a review step</span>
+      </div>
+      <div class="top-right">
+        <a class="top-link" href="https://github.com/Saitarun29/content-ops-pipeline/tree/main/n8n" target="_blank" rel="noopener">n8n workflow</a>
+        <a class="top-link" href="https://github.com/Saitarun29/content-ops-pipeline" target="_blank" rel="noopener">GitHub</a>
+        <span id="modeBadge" class="badge demo" title="Whether the server is calling a live model"><span class="dot" aria-hidden="true"></span><span id="modeText">Demo data</span></span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <div class="page-head">
+      <div>
+        <h1>Content pipeline</h1>
+        <p>Drop one idea. The pipeline writes a brief, drafts for X, LinkedIn, Instagram and a reel, and proposes a posting week. Nothing is scheduled until you approve it.</p>
+      </div>
+    </div>
+
+    <dl class="metrics" aria-label="Pipeline summary">
+      <div class="metric"><dt>Assets per idea</dt><dd>6</dd></div>
+      <div class="metric"><dt>Manual work removed</dt><dd>~80%<small>estimated</small></dd></div>
+      <div class="metric"><dt>Pipeline stages</dt><dd>5</dd></div>
+      <div class="metric"><dt>Last run</dt><dd id="lastRun" class="num">—</dd></div>
+    </dl>
+
+    <div class="grid">
+      <section class="panel" aria-labelledby="inTitle">
+        <div class="panel-head">
+          <h2 id="inTitle"><span class="step">01</span>New idea</h2>
+          <span class="status s-Idea">Idea</span>
+        </div>
+        <div class="panel-body">
+          <span class="label" id="presetLabel">Presets</span>
+          <div class="presets" id="presets" role="group" aria-labelledby="presetLabel"></div>
+
+          <form id="form" autocomplete="off" novalidate>
+            <label class="field">
+              <span class="field-top"><span class="label">Idea</span><small id="ideaCount">0 / 280</small></span>
+              <textarea id="idea" name="idea" rows="3" maxlength="280" required aria-describedby="err" placeholder="Why most automation projects fail in the first 90 days"></textarea>
+            </label>
+            <div class="two">
+              <label class="field">
+                <span class="label">Audience</span>
+                <input id="audience" name="audience" maxlength="160" placeholder="Agency owners and ops leads" />
+              </label>
+              <label class="field">
+                <span class="label">Tone</span>
+                <select id="tone" name="tone">
+                  <option>Professional</option>
+                  <option>Conversational</option>
+                  <option>Bold</option>
+                  <option>Educational</option>
+                  <option>Playful</option>
+                </select>
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-top"><span class="label">Brand voice notes</span><small id="voiceCount">0 / 400</small></span>
+              <textarea id="voice" name="voice" rows="2" maxlength="400" placeholder="Calm, specific, short sentences, no hype words"></textarea>
+            </label>
+            <div class="form-foot">
+              <span class="meta kbd-hint"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to run</span>
+              <button class="btn btn-primary" id="goBtn" type="submit">Run pipeline</button>
+            </div>
+            <div id="err" class="alert bad" role="alert" hidden></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="traceTitle">
+        <div class="panel-head">
+          <h2 id="traceTitle"><span class="step">02</span>Run trace</h2>
+          <span class="meta mono" id="traceMeta">Idle</span>
+        </div>
+        <div class="panel-body">
+          <ol class="trace" id="trace">
+            <li data-step="trigger"><span class="node"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Notion trigger</b><span>Page with status <code>Idea</code> picked up</span></div><em></em></li>
+            <li data-step="brief"><span class="node"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Content brief</b><span>Angle, audience, key messages, CTA</span></div><em></em></li>
+            <li data-step="drafts"><span class="node"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Channel drafts</b><span>X, LinkedIn, Instagram, reel</span></div><em></em></li>
+            <li data-step="review"><span class="node"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Human review</b><span>Slack ping, status <code>Review</code></span></div><em></em></li>
+            <li data-step="schedule"><span class="node"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Schedule</b><span>Publish dates written back to Notion</span></div><em></em></li>
+          </ol>
+          <div class="props" id="props" hidden></div>
+          <p class="hint">Same steps as the included n8n workflow, <code>n8n/content-ops-pipeline.n8n.json</code>.</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" id="out" aria-labelledby="outTitle">
+      <div class="panel-head">
+        <h2 id="outTitle"><span class="step">03</span>Drafts</h2>
+        <button class="btn btn-primary btn-sm" id="approveBtn" type="button" disabled>Approve and schedule</button>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Channels" id="tabs">
+        <button role="tab" id="tab-brief" aria-controls="panel" aria-selected="true" tabindex="0" data-tab="brief">Brief</button>
+        <button role="tab" id="tab-x" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="x">X</button>
+        <button role="tab" id="tab-linkedin" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="linkedin">LinkedIn</button>
+        <button role="tab" id="tab-instagram" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="instagram">Instagram</button>
+        <button role="tab" id="tab-reel" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="reel">Reel</button>
+        <button role="tab" id="tab-schedule" aria-controls="panel" aria-selected="false" tabindex="-1" data-tab="schedule">Schedule</button>
+      </div>
+      <div id="panel" class="tabpanel" role="tabpanel" aria-labelledby="tab-brief" aria-live="polite" tabindex="0">
+        <div class="empty">
+          <div class="empty-box">
+            <div class="empty-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 4.5h6M3 8h10M3 11.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+            <b>No drafts yet</b>
+            Pick a preset or write an idea, then run the pipeline.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="boardTitle">
+      <div class="panel-head">
+        <div>
+          <h2 id="boardTitle"><span class="step">04</span>Content calendar</h2>
+          <p>Drag cards between columns, or focus a card and use the arrow buttons. Saved in this browser.</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="resetBoard" type="button">Reset</button>
+      </div>
+      <div class="board" id="board"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <div>
+        <p>Built by Sai Tarun · <a href="https://saitarun.com" target="_blank" rel="noopener">saitarun.com</a></p>
+        <nav aria-label="Author links">
+          <a href="https://saitarun.com" target="_blank" rel="noopener">Site</a>
+          <a href="https://linkedin.com/in/ronanki-sai-tarun" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://x.com/SaiTarunRonanki" target="_blank" rel="noopener">X</a>
+          <a href="https://github.com/Saitarun29/content-ops-pipeline" target="_blank" rel="noopener">GitHub repo</a>
+        </nav>
+      </div>
+      <a class="btn btn-secondary" href="https://wa.me/918008941430?text=Hello%20Sai%20Tarun%20Ronanki,%20I%20want%20to%20discuss%20about%20my%20workflow" target="_blank" rel="noopener">Discuss your workflow</a>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>

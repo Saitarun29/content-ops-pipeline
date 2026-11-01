@@ -1,0 +1,558 @@
+{
+  "name": "Content Ops Pipeline · Notion → LLM → Notion → Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Content Ops Pipeline\n**Idea → brief → channel drafts → human review → schedule**\n\nEvery 5 minutes this workflow looks for Notion pages in your content calendar with **Status = Idea**. For each one it:\n1. Locks the page (Status → *Drafting*) so it is never processed twice\n2. Asks the LLM for a **content brief** (angle, audience, key messages, CTA)\n3. Asks the LLM for **channel drafts**: X post + 3-post thread, LinkedIn post, Instagram carousel (6 slides + caption + hashtags), 30s Reel script, and a suggested posting schedule\n4. Enforces platform limits (X ≤ 280 chars) and writes everything back to the Notion page (Status → *Review*)\n5. Pings Slack so a human reviews, edits and moves the page to *Scheduled*\n\nTypical result: ~80% less manual drafting and copy-pasting (estimate, varies by team).\nCompanion demo + README: github.com/Saitarun29/content-ops-pipeline",
+        "height": 500,
+        "width": 720,
+        "color": 6
+      },
+      "id": "8dabb1e4-7fa8-422c-9d48-33b3e3b9eef4",
+      "name": "Sticky · Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Setup (no secrets in this file)\nSet these **environment variables** on your n8n instance:\n- `NOTION_TOKEN` (internal integration secret, shared with the database)\n- `NOTION_DATABASE_ID`\n- `OPENAI_API_KEY`, optional `OPENAI_MODEL` (default gpt-4o-mini)\n- `SLACK_WEBHOOK_URL` (incoming webhook for #content-review)\n- optional `BRAND_VOICE_DEFAULT`\n\nIf `$env` is blocked, set `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, or swap the headers for n8n credentials.\n\n**Notion database properties**\nName (title) · Status (status: Idea, Drafting, Review, Scheduled, Published) · Audience (text) · Tone (select) · Brand voice (text) · Brief, X Post, X Thread, LinkedIn, IG Carousel, Reel Script, Schedule (text) · Channels (multi-select) · Publish date (date)",
+        "height": 500,
+        "width": 620,
+        "color": 4
+      },
+      "id": "1aa8ca87-4e81-46a3-aba7-4738887e58c5",
+      "name": "Sticky · Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Human review stays in the loop\nNothing is published automatically. Drafts land in Notion as **Review** and a reviewer is pinged in Slack. After approval they move the card to **Scheduled**; a separate publisher workflow (or Buffer/Typefully) can pick up Scheduled pages at their Publish date.\n\nRetries: every API call retries 3× with a 3s wait. Add an Error Trigger workflow to alert #ops on failure.",
+        "height": 300,
+        "width": 700,
+        "color": 5
+      },
+      "id": "9763f0a6-76bc-40a3-aeb5-a90823b6cdfe",
+      "name": "Sticky · Human in the loop",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "67184f97-381f-4136-b7c6-3aa01511b6b1",
+      "name": "Every 5 min · poll Notion",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/{{ $env.NOTION_DATABASE_ID }}/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.NOTION_TOKEN }}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ page_size: 10, filter: { property: 'Status', status: { equals: 'Idea' } }, sorts: [{ timestamp: 'created_time', direction: 'ascending' }] }) }}"
+      },
+      "id": "3fb377cc-a351-41d0-bea1-9f212f3cae41",
+      "name": "Notion · Find status = Idea",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Polls the content calendar for new ideas",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "id": "1e579077-7899-4150-8e3d-673550b8b557",
+      "name": "One item per idea",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4fefdc44-4717-4705-90cc-1ba08a8162e2",
+              "name": "pageId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "bb35d15c-5489-42e2-9f39-b0f8d571810d",
+              "name": "pageUrl",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "4654ee66-8f14-4655-84d6-392cc41cb88f",
+              "name": "idea",
+              "value": "={{ ($json.properties.Name.title || []).map(t => t.plain_text).join('').slice(0, 280) }}",
+              "type": "string"
+            },
+            {
+              "id": "510ac70b-467a-4c72-be88-38fd1f46799e",
+              "name": "audience",
+              "value": "={{ ($json.properties.Audience?.rich_text || []).map(t => t.plain_text).join('') || 'founders and operators' }}",
+              "type": "string"
+            },
+            {
+              "id": "d58b86bd-a629-4831-85e4-073f99e3ccbf",
+              "name": "tone",
+              "value": "={{ $json.properties.Tone?.select?.name || 'Professional' }}",
+              "type": "string"
+            },
+            {
+              "id": "1bf7b39a-aeee-4167-9137-0903c0a2dd1d",
+              "name": "voice",
+              "value": "={{ ($json.properties['Brand voice']?.rich_text || []).map(t => t.plain_text).join('') || $env.BRAND_VOICE_DEFAULT || 'Clear, specific, no hype.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5d0ab9cc-6fe7-4685-850a-f5e42e6e05c4",
+      "name": "Map Notion properties",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.NOTION_TOKEN }}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: { Status: { status: { name: 'Drafting' } } } }) }}"
+      },
+      "id": "09316036-39eb-42cc-8178-2c1236f0c880",
+      "name": "Notion · Lock (status → Drafting)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Prevents the next poll picking the same idea twice",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.OPENAI_MODEL || 'gpt-4o-mini', temperature: 0.7, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: \"You are a senior content strategist. Return ONLY JSON: {\\\"title\\\":string,\\\"angle\\\":string,\\\"objective\\\":string,\\\"audience\\\":string,\\\"keyMessages\\\":[3 strings],\\\"proofPoints\\\":[2-3 strings, label estimates as estimates],\\\"cta\\\":string,\\\"keywords\\\":[5 strings],\\\"pillar\\\":string}. Be specific. Never invent statistics as facts.\" }, { role: 'user', content: 'IDEA: ' + $('Map Notion properties').item.json.idea + '\\nAUDIENCE: ' + $('Map Notion properties').item.json.audience + '\\nTONE: ' + $('Map Notion properties').item.json.tone + '\\nBRAND VOICE: ' + $('Map Notion properties').item.json.voice } ] }) }}"
+      },
+      "id": "95a26c62-8b94-4bbb-9c47-af7d752934fc",
+      "name": "LLM · Content brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Angle, audience, key messages, CTA",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.OPENAI_MODEL || 'gpt-4o-mini', temperature: 0.8, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: \"You write native content for each platform from a brief. Return ONLY JSON: {\\\"x\\\":{\\\"post\\\":string <=270 chars,\\\"thread\\\":[3 strings <=270 chars, numbered 1/ 2/ 3/]},\\\"linkedin\\\":{\\\"post\\\":string 900-1400 chars, short lines, hook first line, ends with a question},\\\"instagram\\\":{\\\"slides\\\":[6 headlines <=60 chars],\\\"caption\\\":string <=600 chars,\\\"hashtags\\\":[8-12]},\\\"reel\\\":{\\\"hooks\\\":[3],\\\"script\\\":[{\\\"t\\\":\\\"0-3s\\\",\\\"visual\\\":string,\\\"voiceover\\\":string}, 5-6 beats to 30s],\\\"cta\\\":string},\\\"schedule\\\":[{\\\"channel\\\":\\\"X|X Thread|LinkedIn|Instagram|Reel\\\",\\\"day\\\":\\\"Mon..Sun\\\",\\\"time\\\":\\\"HH:MM\\\",\\\"why\\\":string} x5]}. Follow the brand voice notes exactly.\" }, { role: 'user', content: 'BRIEF: ' + $json.choices[0].message.content + '\\nTONE: ' + $('Map Notion properties').item.json.tone + '\\nBRAND VOICE: ' + $('Map Notion properties').item.json.voice } ] }) }}"
+      },
+      "id": "3c352037-2ce8-4d4b-bce2-2e02635d918a",
+      "name": "LLM · Channel drafts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "X post + thread, LinkedIn, IG carousel, Reel, schedule",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse both LLM responses, enforce platform limits, and build the Notion update payloads.\nconst out = [];\nfor (const item of $input.all()) {\n  const meta = $('Map Notion properties').item.json;\n  const brief = JSON.parse($('LLM · Content brief').item.json.choices[0].message.content);\n  const d = JSON.parse(item.json.choices[0].message.content);\n\n  const fit = (s, n) => { s = String(s || ''); return s.length <= n ? s : s.slice(0, n - 1).replace(/\\s+\\S*$/, '') + '…'; };\n  // Notion rich_text: max 2000 chars per text object, so chunk long copy\n  const rt = (s) => { s = String(s || ''); const parts = []; for (let i = 0; i < s.length && parts.length < 50; i += 1900) parts.push({ type: 'text', text: { content: s.slice(i, i + 1900) } }); return parts.length ? parts : [{ type: 'text', text: { content: '' } }]; };\n\n  const xPost = fit(d.x?.post, 280);\n  const thread = (d.x?.thread || []).slice(0, 3).map((t) => fit(t, 280));\n  const slides = (d.instagram?.slides || []).slice(0, 6);\n  const reel = (d.reel?.script || []).map((b) => `[${b.t}] ${b.voiceover}  (visual: ${b.visual})`).join('\\n');\n  const schedule = (d.schedule || []).slice(0, 7);\n\n  // Next calendar date for the first suggested slot (workflow timezone)\n  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];\n  const first = schedule[0];\n  let publishDate = null;\n  if (first && DAYS.includes(first.day)) {\n    const now = new Date();\n    let diff = DAYS.indexOf(first.day) - ((now.getDay() + 6) % 7);\n    if (diff <= 0) diff += 7;\n    const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);\n    const [h, m] = String(first.time || '09:00').split(':').map(Number);\n    dt.setHours(h || 9, m || 0, 0, 0);\n    publishDate = dt.toISOString();\n  }\n\n  const briefText = [`Angle: ${brief.angle}`, `Objective: ${brief.objective}`, `Key messages: ${(brief.keyMessages || []).join(' | ')}`, `CTA: ${brief.cta}`].join('\\n');\n  const properties = {\n    Status: { status: { name: 'Review' } },\n    Brief: { rich_text: rt(briefText) },\n    'X Post': { rich_text: rt(xPost) },\n    'X Thread': { rich_text: rt(thread.join('\\n\\n')) },\n    LinkedIn: { rich_text: rt(d.linkedin?.post) },\n    'IG Carousel': { rich_text: rt(slides.map((s, i) => `${i + 1}. ${s}`).join('\\n') + '\\n\\n' + (d.instagram?.caption || '') + '\\n' + (d.instagram?.hashtags || []).join(' ')) },\n    'Reel Script': { rich_text: rt(`Hooks: ${(d.reel?.hooks || []).join(' / ')}\\n${reel}`) },\n    Schedule: { rich_text: rt(schedule.map((s) => `${s.day} ${s.time} · ${s.channel}: ${s.why}`).join('\\n')) },\n    Channels: { multi_select: [...new Set(schedule.map((s) => s.channel))].map((name) => ({ name })) },\n  };\n  if (publishDate) properties['Publish date'] = { date: { start: publishDate } };\n\n  const h2 = (t) => ({ object: 'block', type: 'heading_2', heading_2: { rich_text: rt(t) } });\n  const p = (t) => ({ object: 'block', type: 'paragraph', paragraph: { rich_text: rt(t) } });\n  const children = [\n    h2('Content brief'), p(briefText),\n    h2('X'), p(xPost), ...thread.map(p),\n    h2('LinkedIn'), p(d.linkedin?.post),\n    h2('Instagram carousel'), ...slides.map((s, i) => p(`Slide ${i + 1}: ${s}`)), p(d.instagram?.caption), p((d.instagram?.hashtags || []).join(' ')),\n    h2('Reel (30s)'), p(reel),\n  ];\n\n  out.push({ json: { pageId: meta.pageId, pageUrl: meta.pageUrl, title: brief.title || meta.idea, idea: meta.idea, xPost, firstSlot: first ? `${first.day} ${first.time} (${first.channel})` : 'not set', properties, children } });\n}\nreturn out;"
+      },
+      "id": "690eb236-9dfe-496b-95d7-d3873573d553",
+      "name": "Parse + enforce limits",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.NOTION_TOKEN }}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: $json.properties }) }}"
+      },
+      "id": "c14cb86c-5e90-4870-aa08-b2480a04d5f8",
+      "name": "Notion · Write drafts (status → Review)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Fills page properties for the calendar view",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/blocks/{{ $('Parse + enforce limits').item.json.pageId }}/children",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.NOTION_TOKEN }}"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ children: $('Parse + enforce limits').item.json.children }) }}"
+      },
+      "id": "498e1b6b-647e-4ccc-ac57-efe6a8347512",
+      "name": "Notion · Append full drafts to page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: 'New drafts ready for review: ' + $('Parse + enforce limits').item.json.title, blocks: [ { type: 'section', text: { type: 'mrkdwn', text: ':memo: *Drafts ready for review*\\n*' + $('Parse + enforce limits').item.json.title + '*\\nFirst slot: ' + $('Parse + enforce limits').item.json.firstSlot } }, { type: 'section', text: { type: 'mrkdwn', text: '>' + $('Parse + enforce limits').item.json.xPost.replace(/\\n/g, '\\n>') } }, { type: 'actions', elements: [ { type: 'button', text: { type: 'plain_text', text: 'Open in Notion' }, url: $('Parse + enforce limits').item.json.pageUrl, style: 'primary' } ] } ] }) }}"
+      },
+      "id": "ca17b7e7-4598-4608-90f2-ea31b9fc0632",
+      "name": "Slack · Review ping",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Human review step: approver moves the page to Scheduled",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "Every 5 min · poll Notion": {
+      "main": [
+        [
+          {
+            "node": "Notion · Find status = Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion · Find status = Idea": {
+      "main": [
+        [
+          {
+            "node": "One item per idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per idea": {
+      "main": [
+        [
+          {
+            "node": "Map Notion properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Notion properties": {
+      "main": [
+        [
+          {
+            "node": "Notion · Lock (status → Drafting)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion · Lock (status → Drafting)": {
+      "main": [
+        [
+          {
+            "node": "LLM · Content brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · Content brief": {
+      "main": [
+        [
+          {
+            "node": "LLM · Channel drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM · Channel drafts": {
+      "main": [
+        [
+          {
+            "node": "Parse + enforce limits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + enforce limits": {
+      "main": [
+        [
+          {
+            "node": "Notion · Write drafts (status → Review)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion · Write drafts (status → Review)": {
+      "main": [
+        [
+          {
+            "node": "Notion · Append full drafts to page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion · Append full drafts to page": {
+      "main": [
+        [
+          {
+            "node": "Slack · Review ping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "content-ops"
+    },
+    {
+      "name": "portfolio"
+    }
+  ]
+}

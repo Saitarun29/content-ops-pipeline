@@ -1,0 +1,8 @@
+{
+  "name": "content-ops-pipeline",
+  "version": "1.0.0",
+  "description": "Content Operations Automation: one idea in, a brief plus X, LinkedIn, Instagram and Reel drafts with a posting schedule out. Notion-style calendar and an importable n8n workflow.",
+  "type": "module",
+  "private": true,
+  "license": "MIT"
+}
