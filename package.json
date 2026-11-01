@@ -1,8 +1,1 @@
-{
-  "name": "content-ops-pipeline",
-  "version": "1.0.0",
-  "description": "Content Operations Automation: one idea in, a brief plus X, LinkedIn, Instagram and Reel drafts with a posting schedule out. Notion-style calendar and an importable n8n workflow.",
-  "type": "module",
-  "private": true,
-  "license": "MIT"
-}
+{"description":"Content operations pipeline: one idea in, a brief plus X, LinkedIn, Instagram and reel drafts with a posting schedule out — held at human review before anything is scheduled. Notion-style calendar, importable n8n workflow, no-key demo mode.","engines":{"node":">=18"},"license":"MIT","name":"content-ops-pipeline","private":true,"scripts":{"dev":"npx vercel dev","smoke":"node scripts/smoke.mjs","test":"node scripts/smoke.mjs"},"type":"module","version":"1.0.0"}

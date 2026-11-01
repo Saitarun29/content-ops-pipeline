@@ -9,21 +9,21 @@
   <meta property="og:description" content="One idea in. Brief, X, LinkedIn, Instagram, reel script and a posting schedule out, with a human review step. Notion + n8n + LLM." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="theme-color" content="#F7F7F5" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111111'/%3E%3Cpath d='M9 11h8M9 16h14M9 21h6' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <meta name="theme-color" content="#FAF4E8" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23B44924'/%3E%3Cpath d='M9 11h8M9 16h14M9 21h6' stroke='%23FFF6E8' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
   <a class="sr-only" href="#main">Skip to content</a>
   <header class="topbar">
     <div class="wrap topbar-inner">
-      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#111"/><path d="M9 11h8M9 16h14M9 21h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#B44924"/><path d="M9 11h8M9 16h14M9 21h6" stroke="#FFF6E8" stroke-width="2.4" stroke-linecap="round"/></svg>
       <div class="product">
         <span class="product-name">Content Ops Pipeline</span>
-        <span class="product-line">One idea to five channel drafts, a schedule and a review step</span>
+        <span class="product-line">The editorial desk for one-person content teams</span>
       </div>
       <div class="top-right">
         <a class="top-link" href="https://github.com/Saitarun29/content-ops-pipeline/tree/main/n8n" target="_blank" rel="noopener">n8n workflow</a>
@@ -36,14 +36,16 @@
   <main id="main" class="wrap">
     <div class="page-head">
       <div>
-        <h1>Content pipeline</h1>
-        <p>Drop one idea. The pipeline writes a brief, drafts for X, LinkedIn, Instagram and a reel, and proposes a posting week. Nothing is scheduled until you approve it.</p>
+        <p class="kicker">The content desk · Notes on working, not just posting</p>
+        <h1>One idea, every channel, still read by a person first</h1>
+        <p>Drop one idea on the desk. The pipeline writes the brief, drafts for X, LinkedIn, Instagram and a reel, and proposes a posting week. Nothing is scheduled until you approve it.</p>
+        <p class="byline">Edited by <b>Sai Tarun Ronanki</b> · Hyderabad · Drafts land in Review, the way a desk editor would want them</p>
       </div>
     </div>
 
     <dl class="metrics" aria-label="Pipeline summary">
       <div class="metric"><dt>Assets per idea</dt><dd>6</dd></div>
-      <div class="metric"><dt>Manual work removed</dt><dd>~80%<small>estimated</small></dd></div>
+      <div class="metric"><dt>Channels</dt><dd>4</dd></div>
       <div class="metric"><dt>Pipeline stages</dt><dd>5</dd></div>
       <div class="metric"><dt>Last run</dt><dd id="lastRun" class="num">—</dd></div>
     </dl>
@@ -128,8 +130,8 @@
         <div class="empty">
           <div class="empty-box">
             <div class="empty-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 4.5h6M3 8h10M3 11.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div>
-            <b>No drafts yet</b>
-            Pick a preset or write an idea, then run the pipeline.
+            <b>The desk is clear</b>
+            No drafts yet. Pick a preset or write an idea, then run the pipeline.
           </div>
         </div>
       </div>
@@ -139,7 +141,7 @@
       <div class="panel-head">
         <div>
           <h2 id="boardTitle"><span class="step">04</span>Content calendar</h2>
-          <p>Drag cards between columns, or focus a card and use the arrow buttons. Saved in this browser.</p>
+          <p>Seeded with sample cards. Drag cards between columns, or focus a card and use the arrow buttons. Saved in this browser.</p>
         </div>
         <button class="btn btn-secondary btn-sm" id="resetBoard" type="button">Reset</button>
       </div>
@@ -150,15 +152,15 @@
   <footer class="foot">
     <div class="wrap foot-inner">
       <div>
-        <p>Built by Sai Tarun · <a href="https://saitarun.com" target="_blank" rel="noopener">saitarun.com</a></p>
+        <p>Built by Sai Tarun Ronanki · <a href="https://saitarun.com" target="_blank" rel="noopener">saitarun.com</a> · <a href="mailto:hello@saitarun.com">hello@saitarun.com</a></p>
         <nav aria-label="Author links">
           <a href="https://saitarun.com" target="_blank" rel="noopener">Site</a>
-          <a href="https://linkedin.com/in/ronanki-sai-tarun" target="_blank" rel="noopener">LinkedIn</a>
-          <a href="https://x.com/SaiTarunRonanki" target="_blank" rel="noopener">X</a>
+          <a href="https://www.linkedin.com/in/saitarunronanki" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://www.instagram.com/tarunaistudio" target="_blank" rel="noopener">Instagram @tarunaistudio</a>
           <a href="https://github.com/Saitarun29/content-ops-pipeline" target="_blank" rel="noopener">GitHub repo</a>
         </nav>
       </div>
-      <a class="btn btn-secondary" href="https://wa.me/918008941430?text=Hello%20Sai%20Tarun%20Ronanki,%20I%20want%20to%20discuss%20about%20my%20workflow" target="_blank" rel="noopener">Discuss your workflow</a>
+      <a class="btn btn-secondary" href="mailto:hello@saitarun.com?subject=A%20content%20workflow%20question">Discuss your workflow</a>
     </div>
   </footer>
 

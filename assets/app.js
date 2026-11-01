@@ -284,7 +284,7 @@ function xCard(text, n) {
     <div class="who"><div class="av" aria-hidden="true">${AV}</div><div><b>Sai Tarun</b> <span class="h">@SaiTarunRonanki${n ? ` · ${n}` : ''}</span></div></div>
     <div class="txt">${esc(text)}</div>
     <div class="mock-foot">
-      <div class="acts" aria-hidden="true"><span>${ICON.reply}12</span><span>${ICON.repost}8</span><span>${ICON.like}64</span><span>${ICON.views}2.1K</span></div>
+      <div class="acts" aria-hidden="true"><span>${ICON.reply}</span><span>${ICON.repost}</span><span>${ICON.like}</span><span>${ICON.views}</span></div>
       ${meter(xLength(text), LIMITS.x)} ${copyBtn(text)}
     </div>
   </article>`;
@@ -458,12 +458,12 @@ function seedBoard() {
   const now = new Date();
   const d = (n) => { const t = new Date(now.getFullYear(), now.getMonth(), now.getDate() + n); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
   return [
-    { id: 's1', title: 'Customer story: 3 hours a week saved on reporting', channel: 'LinkedIn', status: 'Idea', date: '', time: '' },
-    { id: 's2', title: 'Myth vs reality: "AI will replace your ops team"', channel: 'X Thread', status: 'Idea', date: '', time: '' },
-    { id: 's3', title: 'Behind the build: Notion + n8n content engine', channel: 'Reel', status: 'Drafting', date: d(4), time: '19:00' },
+    { id: 's1', title: 'Self-checking workflows: the run log I read every Monday', channel: 'LinkedIn', status: 'Idea', date: '', time: '' },
+    { id: 's2', title: 'Exceptions queues: where unclear cases go instead of vanishing', channel: 'X Thread', status: 'Idea', date: '', time: '' },
+    { id: 's3', title: 'Comparing vendor quotes without the spreadsheet marathon', channel: 'Reel', status: 'Drafting', date: d(4), time: '19:00' },
     { id: 's4', title: '5 workflows every agency should automate', channel: 'Instagram', status: 'Scheduled', date: d(2), time: '18:30' },
     { id: 's5', title: 'Why we keep a human in the review loop', channel: 'LinkedIn', status: 'Published', date: d(-3), time: '09:00' },
-    { id: 's6', title: 'One idea, six assets', channel: 'X', status: 'Published', date: d(-5), time: '12:30' },
+    { id: 's6', title: 'One idea, six assets: my Sunday content routine', channel: 'X', status: 'Published', date: d(-5), time: '12:30' },
   ];
 }
 function load() {

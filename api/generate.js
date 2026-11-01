@@ -43,6 +43,16 @@ async function readBody(req) {
 }
 
 export default async function handler(req, res) {
+  try {
+    return await handle(req, res);
+  } catch (err) {
+    // Last-resort guard: a clear JSON error, never a stack trace.
+    if (!res.headersSent) return res.status(500).json({ error: 'Something went wrong generating that package. Try again.' });
+    return res.end();
+  }
+}
+
+async function handle(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {
@@ -68,13 +78,17 @@ export default async function handler(req, res) {
   let note;
 
   if (process.env.GEMINI_API_KEY) {
-    try {
-      result = await generateLive(input, process.env.GEMINI_API_KEY);
-      mode = 'live';
-    } catch (err) {
-      note = 'Live AI unavailable, served demo output instead.';
-      result = null;
+    // One retry for a transient failure; if live generation still fails, the
+    // request falls back to demo output and says so, rather than erroring out.
+    for (let attempt = 0; attempt < 2 && !result; attempt++) {
+      try {
+        result = await generateLive(input, process.env.GEMINI_API_KEY);
+        mode = 'live';
+      } catch (err) {
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 400));
+      }
     }
+    if (!result) note = 'Live AI unavailable after a retry, served demo output instead.';
   }
   if (!result) result = generateDemo(input);
 
@@ -236,7 +250,7 @@ function topicPhrase(idea) {
 }
 
 const TONE_KIT = {
-  Professional: { open: 'A practical note on something I get asked about a lot:', close: 'What has worked for your team?', sign: 'Small system, big leverage.' },
+  Professional: { open: 'A practical note on something I get asked about a lot:', close: 'What has worked for your team?', sign: 'Small system, properly run.' },
   Conversational: { open: 'Quick one, because it keeps coming up:', close: 'Curious how you handle this. Tell me below.', sign: 'That\'s really it.' },
   Bold: { open: 'Most people get this wrong:', close: 'Agree or disagree? I want the pushback.', sign: 'Systems beat hustle.' },
   Educational: { open: 'A simple 3-step framework for this:', close: 'Save this and share it with someone who needs it.', sign: 'Simple beats clever.' },
